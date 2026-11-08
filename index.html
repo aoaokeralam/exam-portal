@@ -1166,31 +1166,62 @@
         }
       };
       window.App = App;
+/* -------------------------------------------------------------
+   API GATEWAY (Google Apps Script Runner + GitHub Pages Fetch)
+   ------------------------------------------------------------- */
+window.GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzviMcGt_P_Zy8HK0asJdyLIKiTalNrkFbtu0qwbea9LvtecG3dhWqOSOkf2a9QjM7K/exec';
 
-      /* -------------------------------------------------------------
-         API GATEWAY (Google Apps Script Runner)
-         ------------------------------------------------------------- */
-      function callApi(action, data) {
-        return new Promise(function (resolve, reject) {
-          if (typeof google !== 'undefined' && google.script && google.script.run) {
-            google.script.run
-              .withSuccessHandler(function (rawResponse) {
-                try {
-                  const res = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
-                  if (res && res.ok) {
-                    resolve(res.data);
-                  } else {
-                    reject(new Error(res && res.error ? res.error : 'Server request failed'));
-                  }
-                } catch (e) {
-                  reject(new Error('Failed to parse server response: ' + e.message));
-                }
-              })
-              .withFailureHandler(function (err) {
-                reject(new Error(err && err.message ? err.message : String(err)));
-              })
-              .api(action, data || {}, App.token || '');
-          } else {
+function callApi(action, data) {
+  return new Promise(function (resolve, reject) {
+    // Mode 1: If running inside Google Apps Script iframe
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function (rawResponse) {
+          try {
+            const res = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
+            if (res && res.ok) resolve(res.data);
+            else reject(new Error(res && res.error ? res.error : 'Server request failed'));
+          } catch (e) {
+            reject(new Error('Failed to parse server response: ' + e.message));
+          }
+        })
+        .withFailureHandler(function (err) {
+          reject(new Error(err && err.message ? err.message : String(err)));
+        })
+        .api(action, data || {}, App.token || '');
+      return;
+    }
+    // Mode 2: Running on GitHub Pages (exam.aoaok.in)
+    const apiUrl = window.GAS_WEBAPP_URL;
+    if (!apiUrl || apiUrl.indexOf('https://script.google.com/macros/s/') !== 0) {
+      alert('Backend URL is missing! Please paste your Web App URL into window.GAS_WEBAPP_URL.');
+      return reject(new Error('Web App URL not configured'));
+    }
+
+    fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: action,
+        data: data || {},
+        token: App.token || ''
+      })
+    })
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (raw) {
+      const res = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (res && res.ok) {
+        resolve(res.data);
+      } else {
+        reject(new Error(res && res.error ? res.error : 'Server request failed'));
+      }
+    })
+    .catch(function (err) {
+      reject(new Error('Connection error: ' + err.message));
+    });
+  });
+} else {
             // Local simulation fallback for testing offline
             console.warn('google.script.run not detected. Running in mock offline mode.');
             setTimeout(function () {
