@@ -2450,9 +2450,11 @@
                 '</tr>';
             });
 
-            const curExam = App.adminState.examsList.find(function (x) { return x.ExamID === App.adminState.selectedExamId; });
-            const poolBanner = curExam && curExam.QuestionLimit && Number(curExam.QuestionLimit) > 0 ?
-              '<div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px 16px; margin-bottom:12px; color:#166534; font-size:13.5px; display:flex; align-items:center; gap:8px;"><span>&#127922;</span> <div><strong>Random Question Pooling Active:</strong> Total bank contains <strong>' + qs.length + ' questions</strong>. Each candidate receives <strong>' + curExam.QuestionLimit + ' random questions</strong> with auto-calculated scoring.</div></div>' : '';
+            const exams = App.adminState.examsList || [];
+            const curExam = exams.find(function (x) { return x.ExamID === App.adminState.selectedExamId; }) || {};
+            const qCount = curExam.qCount || curExam.QuestionsCount || '200';
+            const poolBanner = curExam.QuestionLimit && Number(curExam.QuestionLimit) > 0 ?
+              '<div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px 16px; margin-bottom:12px; color:#166534; font-size:13.5px; display:flex; align-items:center; gap:8px;"><span>&#127922;</span> <div><strong>Random Question Pooling Active:</strong> Total bank contains <strong>' + qCount + ' questions</strong>. Each candidate receives <strong>' + curExam.QuestionLimit + ' random questions</strong> with auto-calculated scoring.</div></div>' : '';
             const html =
               poolBanner +
               '<div class="toolbar">' +
@@ -2800,9 +2802,11 @@
                 '</div>' +
               '</div>';
 
-            const curExam = App.adminState.examsList.find(function (x) { return x.ExamID === App.adminState.selectedExamId; });
-            const poolBanner = curExam && curExam.QuestionLimit && Number(curExam.QuestionLimit) > 0 ?
-              '<div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px 16px; margin-bottom:12px; color:#166534; font-size:13.5px; display:flex; align-items:center; gap:8px;"><span>&#127922;</span> <div><strong>Random Question Pooling Active:</strong> Total bank contains <strong>' + qs.length + ' questions</strong>. Each candidate receives <strong>' + curExam.QuestionLimit + ' random questions</strong> with auto-calculated scoring.</div></div>' : '';
+            const exams = App.adminState.examsList || [];
+            const curExam = exams.find(function (x) { return x.ExamID === App.adminState.selectedExamId; }) || {};
+            const qCount = curExam.qCount || curExam.QuestionsCount || '200';
+            const poolBanner = curExam.QuestionLimit && Number(curExam.QuestionLimit) > 0 ?
+              '<div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px 16px; margin-bottom:12px; color:#166534; font-size:13.5px; display:flex; align-items:center; gap:8px;"><span>&#127922;</span> <div><strong>Random Question Pooling Active:</strong> Total bank contains <strong>' + qCount + ' questions</strong>. Each candidate receives <strong>' + curExam.QuestionLimit + ' random questions</strong> with auto-calculated scoring.</div></div>' : '';
             const html =
               poolBanner +
               '<div class="toolbar">' +
