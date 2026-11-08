@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   
@@ -1166,94 +1166,125 @@
         }
       };
       window.App = App;
-/* -------------------------------------------------------------
-   API GATEWAY (Google Apps Script Runner + GitHub Pages Fetch)
-   ------------------------------------------------------------- */
-window.GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzviMcGt_P_Zy8HK0asJdyLIKiTalNrkFbtu0qwbea9LvtecG3dhWqOSOkf2a9QjM7K/exec';
 
-function callApi(action, data) {
-  return new Promise(function (resolve, reject) {
-    // Mode 1: If running inside Google Apps Script iframe
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler(function (rawResponse) {
-          try {
-            const res = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
-            if (res && res.ok) resolve(res.data);
-            else reject(new Error(res && res.error ? res.error : 'Server request failed'));
-          } catch (e) {
-            reject(new Error('Failed to parse server response: ' + e.message));
-          }
-        })
-        .withFailureHandler(function (err) {
-          reject(new Error(err && err.message ? err.message : String(err)));
-        })
-        .api(action, data || {}, App.token || '');
-      return;
-    }
-    // Mode 2: Running on GitHub Pages (exam.aoaok.in)
-    const apiUrl = window.GAS_WEBAPP_URL;
-    if (!apiUrl || apiUrl.indexOf('https://script.google.com/macros/s/') !== 0) {
-      alert('Backend URL is missing! Please paste your Web App URL into window.GAS_WEBAPP_URL.');
-      return reject(new Error('Web App URL not configured'));
-    }
+      /* -------------------------------------------------------------
+         API GATEWAY (Google Apps Script Runner & Web App Fetch)
+         ------------------------------------------------------------- */
+      window.GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzviMcGt_P_Zy8HK0asJdyLIKiTalNrkFbtu0qwbea9LvtecG3dhWqOSOkf2a9QjM7K/exec';
 
-    fetch(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: action,
-        data: data || {},
-        token: App.token || ''
-      })
-    })
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (raw) {
-      const res = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (res && res.ok) {
-        resolve(res.data);
-      } else {
-        reject(new Error(res && res.error ? res.error : 'Server request failed'));
-      }
-    })
-    .catch(function (err) {
-      reject(new Error('Connection error: ' + err.message));
-    });
-  });
-} else {
-            // Local simulation fallback for testing offline
-            console.warn('google.script.run not detected. Running in mock offline mode.');
-            setTimeout(function () {
-              if (action === 'adminLogin') {
-                resolve({ token: 'mock-admin-token', name: 'AOAOK Admin' });
-              } else if (action === 'candLogin') {
-                resolve({
-                  token: 'mock-cand-token',
-                  now: Date.now(),
-                  candidate: { userId: 'AO101', name: 'Agricultural Officer Rahul', rollNo: '1001' },
-                  exam: {
-                    examId: 'EXAM01',
-                    code: 'KSR2026',
-                    title: 'Kerala Service Rules (KSR) Preparatory Test',
-                    instructions: '1. All questions carry equal marks.\n2. Negative mark of 0.25 applies for wrong answers.\n3. Do not switch browser tabs.',
-                    durationMin: 60,
-                    startAt: new Date(Date.now() - 60000).toISOString(),
-                    endAt: new Date(Date.now() + 3600000).toISOString(),
-                    marksPerQ: 1,
-                    negativeOn: true,
-                    negativeVal: 0.25,
-                    allowBack: true,
-                    questionsCount: 5,
-                    hasStarted: false,
-                    hasSubmitted: false
+      function callApi(action, data) {
+        return new Promise(function (resolve, reject) {
+          // 1. If running embedded inside Google Apps Script (google.script.run)
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function (rawResponse) {
+                try {
+                  var res = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
+                  if (typeof res === 'string') {
+                    try { res = JSON.parse(res); } catch (e) {}
                   }
-                });
-              } else {
-                resolve({});
-              }
-            }, 300);
+                  if (res && res.ok) {
+                    var d = res.data;
+                    if (typeof d === 'string') {
+                      try { d = JSON.parse(d); } catch (e) {}
+                    }
+                    resolve(d);
+                  } else {
+                    reject(new Error(res && res.error ? res.error : 'Server request failed'));
+                  }
+                } catch (e) {
+                  reject(new Error('Failed to parse server response: ' + e.message));
+                }
+              })
+              .withFailureHandler(function (err) {
+                reject(new Error(err && err.message ? err.message : String(err)));
+              })
+              .api(action, data || {}, App.token || '');
+            return;
           }
+
+          // 2. If running standalone on GitHub Pages / Web via fetch
+          var apiUrl = window.GAS_WEBAPP_URL || '';
+          if (apiUrl && apiUrl.indexOf('http') === 0) {
+            var payload = JSON.stringify({
+              action: action,
+              data: data || {},
+              token: App.token || ''
+            });
+
+            // text/plain prevents CORS preflight OPTIONS request on script.google.com
+            fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+              },
+              body: payload
+            })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+              }
+              return response.text();
+            })
+            .then(function (text) {
+              var res;
+              try {
+                res = JSON.parse(text);
+              } catch (e) {
+                throw new Error('Invalid JSON received from server: ' + text.substring(0, 150));
+              }
+              if (typeof res === 'string') {
+                try { res = JSON.parse(res); } catch (e) {}
+              }
+              if (res && res.ok) {
+                var d = res.data;
+                if (typeof d === 'string') {
+                  try { d = JSON.parse(d); } catch (e) {}
+                }
+                resolve(d);
+              } else {
+                reject(new Error(res && res.error ? res.error : 'Server request failed'));
+              }
+            })
+            .catch(function (err) {
+              reject(new Error('Backend connection failed: ' + err.message));
+            });
+            return;
+          }
+
+          // 3. Fallback mock offline mode if no backend URL is configured
+          console.warn('Backend URL not detected. Running in mock offline mode.');
+          setTimeout(function () {
+            if (action === 'adminLogin') {
+              resolve({ token: 'mock-admin-token', name: 'AOAOK Admin' });
+            } else if (action === 'candLogin') {
+              resolve({
+                token: 'mock-cand-token',
+                now: Date.now(),
+                candidate: { userId: 'AO101', name: 'Agricultural Officer Rahul', rollNo: '1001' },
+                exam: {
+                  examId: 'EXAM01',
+                  code: 'KSR2026',
+                  title: 'Kerala Service Rules (KSR) Preparatory Test',
+                  instructions: '1. All questions carry equal marks.\n2. Negative mark of 0.25 applies for wrong answers.\n3. Do not switch browser tabs.',
+                  durationMin: 60,
+                  startAt: new Date(Date.now() - 60000).toISOString(),
+                  endAt: new Date(Date.now() + 3600000).toISOString(),
+                  marksPerQ: 1,
+                  negativeOn: true,
+                  negativeVal: 0.25,
+                  allowBack: true,
+                  questionsCount: 5,
+                  hasStarted: false,
+                  hasSubmitted: false
+                }
+              });
+            } else if (action === 'exams') {
+              resolve([]);
+            } else {
+              resolve({});
+            }
+          }, 300);
         });
       }
 
