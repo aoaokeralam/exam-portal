@@ -1,4 +1,4 @@
-∩╗┐<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   
@@ -2427,26 +2427,23 @@
               const safePass = (c.PlainPass || '').replace(/'/g, "\\'");
               const safeEmail = (c.Email || '').replace(/'/g, "\\'");
 
+              const credLabel = c.EmailSentAt ?
+                '<span style="color:#15803d; font-weight:700; font-size:11px;" title="' + escapeHtml(c.EmailSentAt) + '">&#10003; Sent</span>' :
+                '<span style="color:#b45309; font-size:11px;">Pending</span>';
+
               rowsHtml +=
                 '<tr>' +
                   '<td><b>' + escapeHtml(c.RollNo) + '</b></td>' +
                   '<td style="font-weight:600;">' + escapeHtml(c.Name) + '</td>' +
-                  '<td style="font-size:12px;">' + (c.PEN ? '<span style="color:#0f766e; font-weight:700;">&#128222; ' + escapeHtml(c.PEN) + '</span><br>' : '') + '<small style="color:var(--slate-500);">' + escapeHtml(c.Designation || 'Agricultural Officer') + '</small></td>' +
+                  '<td style="font-size:12px; max-width:180px;">' + (c.PEN ? '<span style="color:#0f766e; font-weight:700;">&#128222; ' + escapeHtml(c.PEN) + '</span><br>' : '') + '<small style="color:var(--slate-500); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escapeHtml(c.Designation || '') + '">' + escapeHtml(c.Designation || 'Agricultural Officer') + '</small></td>' +
                   '<td><code style="font-weight:700; color:#0f172a; background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:13px;">' + escapeHtml(c.UserID) + '</code></td>' +
                   '<td>' + passDisplay + '</td>' +
-                  '<td style="font-size:12px;">' + (c.Email ? escapeHtml(c.Email) : '<span style="color:var(--slate-400);">(None)</span>') + '</td>' +
-                  '<td><span class="st ' + c.Status + '">' + c.Status + '</span></td>' +
-                  '<td>' + credStatus + '</td>' +
-                  '<td style="font-size:12px;">' + (c.LastLogin ? new Date(Number(c.LastLogin)).toLocaleTimeString() : 'Never') + '</td>' +
-                  '<td>' +
-                    '<button type="button" class="sm" style="background:#25D366; color:#fff; border:1px solid #16a34a; font-weight:700; display:inline-flex; align-items:center; gap:4px; margin-right:4px;" title="Open WhatsApp chat directly" onclick="App.sendCandWhatsApp(\'' + c.UserID + '\')">&#128172; WhatsApp</button> ' +
-                    '<button type="button" class="sm pri" style="background:#0284c7; border-color:#0284c7; font-weight:700;" onclick="App.openResetCandPasswordModal(\'' + c.UserID + '\', \'' + safeName + '\', \'' + safePass + '\', \'' + safeEmail + '\')">Reset Pwd</button> ' +
-                    '<button type="button" class="sm sec" style="background:#0f766e; color:#fff; border-color:#0f766e; font-weight:700;" onclick="App.openCandShareModal(\'' + c.UserID + '\')">Share Pass</button> ' +
-                    '<button type="button" class="sm sec" title="Unlock terminal session" onclick="App.candAction(\'' + c.UserID + '\', \'reset\')">Unlock</button> ' +
-                    (c.Status === 'Active' ?
-                      '<button type="button" class="sm danger" onclick="App.candAction(\'' + c.UserID + '\', \'block\')">Block</button>' :
-                      '<button type="button" class="sm sec" onclick="App.candAction(\'' + c.UserID + '\', \'unblock\')">Unblock</button>'
-                    ) +
+                  '<td style="font-size:12px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escapeHtml(c.Email || '') + '">' + (c.Email ? escapeHtml(c.Email) : '<span style="color:var(--slate-400);">(None)</span>') + '</td>' +
+                  '<td style="font-size:12px; line-height:1.4;"><span class="st ' + c.Status + '">' + c.Status + '</span><br>' + credLabel + '</td>' +
+                  '<td style="font-size:11.5px; color:#64748b;">' + (c.LastLogin ? new Date(Number(c.LastLogin)).toLocaleTimeString() : 'Never') + '</td>' +
+                  '<td style="white-space:nowrap;">' +
+                    '<button type="button" class="sm" style="background:#25D366; color:#fff; border:none; font-weight:700; display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:4px;" title="Open WhatsApp chat directly" onclick="App.sendCandWhatsApp(\'' + c.UserID + '\')">&#128172; WhatsApp</button> ' +
+                    '<button type="button" class="sm sec" style="padding:4px 8px; font-size:12px;" title="Reset password, unlock, or block" onclick="App.openCandManageModal(\'' + c.UserID + '\')">&#9881; More</button>' +
                   '</td>' +
                 '</tr>';
             });
@@ -2472,8 +2469,8 @@
               '</div>' +
               '<div class="table-wrap">' +
                 '<table>' +
-                  '<thead><tr><th>Roll No</th><th>Candidate Name</th><th>Mobile / Designation</th><th>User ID</th><th>Password / PIN</th><th>Email Address</th><th>Status</th><th>Credentials</th><th>Last Login</th><th>Actions</th></tr></thead>' +
-                  '<tbody>' + (rowsHtml || '<tr><td colspan="10" style="text-align:center; padding:30px;">No candidates enrolled yet. Candidates can register via the portal homepage or click "Upload CSV".</td></tr>') + '</tbody>' +
+                  '<thead><tr><th>Roll No</th><th>Candidate Name</th><th>Mobile / Office</th><th>User ID</th><th>Password</th><th>Email Address</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>' +
+                  '<tbody>' + (rowsHtml || '<tr><td colspan="9" style="text-align:center; padding:30px;">No candidates enrolled yet. Candidates can register via the portal homepage or click "Upload CSV".</td></tr>') + '</tbody>' +
                 '</table>' +
               '</div>';
 
@@ -2482,30 +2479,39 @@
           .catch(function (err) { container.innerHTML = '<div class="msg err">' + err.message + '</div>'; });
       }
 
-            App.sendCandWhatsApp = function (userId) {
+      App.sendCandWhatsApp = function (userId) {
         const cands = App.adminState.candidatesList || [];
         const cand = cands.find(function (c) { return c.UserID === userId; });
         if (!cand) return alert('Candidate not found.');
 
-        const examId = App.adminState.selectedExamId;
         const exams = App.adminState.examsList || [];
-        const curExam = exams.find(function (x) { return x.ExamID === examId; }) || { Code: 'EXAM', Title: 'Examination' };
         const portalUrl = 'https://exam.aoaok.in';
 
         const cleanPhone = String(cand.PEN || '').replace(/\D/g, '');
         const fullPhone = cleanPhone.length === 10 ? ('91' + cleanPhone) : cleanPhone;
 
+        let examLines = '';
+        if (exams && exams.length > 0) {
+          exams.forEach(function (x, idx) {
+            examLines += (idx + 1) + '. ' + x.Title + ' [' + x.Code + ']\n';
+          });
+        } else {
+          examLines = '1. Departmet Test Series-Exam 1 [KSR2026]\n2. Departmet Test Serie-Exam 2 [KFC2026]\n';
+        }
+
         const shareText =
           '*AOAOK Departmental Test Login Pass*\n\n' +
           'Dear ' + cand.Name + ',\n' +
-          'Here are your official login credentials for the examination:\n\n' +
-          'ΓÇó Examination: ' + curExam.Title + ' [' + curExam.Code + ']\n' +
-          'ΓÇó Exam Code: ' + curExam.Code + '\n' +
-          'ΓÇó User ID: ' + cand.UserID + '\n' +
-          'ΓÇó Password / PIN: ' + (cand.PlainPass || '[Configured at registration]') + '\n' +
-          'ΓÇó Roll Number: ' + cand.RollNo + '\n' +
-          (cleanPhone ? ('ΓÇó Mobile: ' + cleanPhone + '\n') : '') +
-          'ΓÇó Portal Link: ' + portalUrl + '\n\n' +
+          'Here are your official login credentials for your upcoming departmental examinations:\n\n' +
+          '- User ID: ' + cand.UserID + '\n' +
+          '- Password / PIN: ' + (cand.PlainPass || '[Configured at registration]') + '\n' +
+          '- Roll Number: ' + cand.RollNo + '\n' +
+          (cleanPhone ? ('- Mobile: ' + cleanPhone + '\n') : '') +
+          '\n*Enrolled Examinations (Same Login for Both):*\n' +
+          examLines +
+          '\n- Exam Portal Link: ' + portalUrl + '\n\n' +
+          '*Instructions:*\n' +
+          'Visit the portal link above, select your examination paper from the dropdown, and log in using your User ID and Password.\n\n' +
           'Association of Agricultural Officers Kerala (AOAOK)';
 
         const waUrl = fullPhone ?
@@ -2513,6 +2519,50 @@
           ('https://api.whatsapp.com/send?text=' + encodeURIComponent(shareText));
 
         window.open(waUrl, '_blank');
+      };
+
+      App.openCandManageModal = function (userId) {
+        const cands = App.adminState.candidatesList || [];
+        const cand = cands.find(function (c) { return c.UserID === userId; });
+        if (!cand) return alert('Candidate not found.');
+
+        const safeName = (cand.Name || '').replace(/'/g, "\\'");
+        const safePass = (cand.PlainPass || '').replace(/'/g, "\\'");
+        const safeEmail = (cand.Email || '').replace(/'/g, "\\'");
+
+        const html =
+          '<div class="modal-head">' +
+            '<h3>Manage Candidate</h3>' +
+            '<button type="button" class="modal-close-btn" onclick="App.closeModal()">&times;</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:14px; margin-bottom:16px;">' +
+              '<div style="display:flex; justify-content:space-between; margin-bottom:6px;">' +
+                '<strong style="font-size:15px; color:#166534;">' + escapeHtml(cand.Name) + '</strong>' +
+                '<span style="background:#bbf7d0; color:#14532d; font-weight:700; font-size:12px; padding:2px 8px; border-radius:10px;">Roll: ' + escapeHtml(cand.RollNo) + '</span>' +
+              '</div>' +
+              '<div style="font-size:13px; color:#334155; line-height:1.6;">' +
+                'User ID: <code>' + escapeHtml(cand.UserID) + '</code> | Password: <b style="color:#15803d; font-family:monospace;">' + escapeHtml(cand.PlainPass || '[Configured]') + '</b><br>' +
+                (cand.PEN ? 'Mobile: <b>' + escapeHtml(cand.PEN) + '</b> | ' : '') + 'Email: ' + escapeHtml(cand.Email || 'None') + '<br>' +
+                'Office: ' + escapeHtml(cand.Designation || 'Agricultural Officer') +
+              '</div>' +
+            '</div>' +
+            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">' +
+              '<button type="button" class="pri" style="background:#25D366; border-color:#16a34a; font-weight:700;" onclick="App.sendCandWhatsApp(\'' + cand.UserID + '\')">&#128172; Send WhatsApp</button>' +
+              '<button type="button" class="pri" style="background:#0284c7; border-color:#0284c7; font-weight:700;" onclick="App.closeModal(); App.openResetCandPasswordModal(\'' + cand.UserID + '\', \'' + safeName + '\', \'' + safePass + '\', \'' + safeEmail + '\')">&#128273; Reset Password</button>' +
+              '<button type="button" class="sec" onclick="App.candAction(\'' + cand.UserID + '\', \'reset\'); App.closeModal();">&#128275; Unlock Session</button>' +
+              (cand.Status === 'Active' ?
+                '<button type="button" class="danger" onclick="App.candAction(\'' + cand.UserID + '\', \'block\'); App.closeModal();">&#128683; Block Candidate</button>' :
+                '<button type="button" class="sec" onclick="App.candAction(\'' + cand.UserID + '\', \'unblock\'); App.closeModal();">&#9989; Unblock Candidate</button>'
+              ) +
+            '</div>' +
+            '<button type="button" class="sec" style="width:100%;" onclick="App.copyText(\'' + safePass + '\', \'Password copied!\')">Copy Password Only</button>' +
+          '</div>' +
+          '<div class="modal-foot">' +
+            '<button class="sec" onclick="App.closeModal()">Close</button>' +
+          '</div>';
+
+        openModal(html);
       };
 
       App.openCandShareModal = function (userId) {
@@ -2528,17 +2578,28 @@
         const cleanPhone = String(cand.PEN || '').replace(/\D/g, '');
         const fullPhone = cleanPhone.length === 10 ? ('91' + cleanPhone) : cleanPhone;
 
+        let examLines = '';
+        if (exams && exams.length > 0) {
+          exams.forEach(function (x, idx) {
+            examLines += (idx + 1) + '. ' + x.Title + ' [' + x.Code + ']\n';
+          });
+        } else {
+          examLines = '1. Departmet Test Series-Exam 1 [KSR2026]\n2. Departmet Test Serie-Exam 2 [KFC2026]\n';
+        }
+
         const shareText =
           '*AOAOK Departmental Test Login Pass*\n\n' +
           'Dear ' + cand.Name + ',\n' +
-          'Here are your official login credentials for the examination:\n\n' +
-          'ΓÇó Examination: ' + curExam.Title + ' [' + curExam.Code + ']\n' +
-          'ΓÇó Exam Code: ' + curExam.Code + '\n' +
-          'ΓÇó User ID: ' + cand.UserID + '\n' +
-          'ΓÇó Password / PIN: ' + (cand.PlainPass || '[Configured at registration]') + '\n' +
-          'ΓÇó Roll Number: ' + cand.RollNo + '\n' +
-          (cleanPhone ? ('ΓÇó Mobile: ' + cleanPhone + '\n') : '') +
-          'ΓÇó Portal Link: ' + portalUrl + '\n\n' +
+          'Here are your official login credentials for your upcoming departmental examinations:\n\n' +
+          '- User ID: ' + cand.UserID + '\n' +
+          '- Password / PIN: ' + (cand.PlainPass || '[Configured at registration]') + '\n' +
+          '- Roll Number: ' + cand.RollNo + '\n' +
+          (cleanPhone ? ('- Mobile: ' + cleanPhone + '\n') : '') +
+          '\n*Enrolled Examinations (Same Login for Both):*\n' +
+          examLines +
+          '\n- Exam Portal Link: ' + portalUrl + '\n\n' +
+          '*Instructions:*\n' +
+          'Visit the portal link above, select your examination paper from the dropdown, and log in using your User ID and Password.\n\n' +
           'Association of Agricultural Officers Kerala (AOAOK)';
 
         const waUrl = fullPhone ?
