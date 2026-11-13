@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+∩╗┐<!DOCTYPE html>
 <html lang="en">
 <head>
   
@@ -1508,8 +1508,11 @@
                       '<input type="email" id="regEmail" placeholder="officer@gmail.com" required>' +
                     '</div>' +
                     '<div style="margin-bottom:14px;">' +
-                      '<label>Select Examination</label>' +
-                      '<select id="regExamSelect" required></select>' +
+                      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+                        '<label style="margin:0; font-weight:700;">Select Examination(s) to Register</label>' +
+                        '<label style="font-size:12px; font-weight:700; color:var(--brand-700); cursor:pointer;"><input type="checkbox" id="regSelectAllExams" checked onchange="App.toggleSelectAllExams(this)"> Select All</label>' +
+                      '</div>' +
+                      '<div id="regExamCheckboxes" style="background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:8px; max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>' +
                     '</div>' +
                     '<div style="margin-bottom:18px;">' +
                       '<label>Access Password / PIN <small>(Optional: leave blank to auto-generate)</small></label>' +
@@ -1528,7 +1531,7 @@
                     '<h3 style="font-size:18px; color:var(--brand-900);">Registration Confirmed!</h3>' +
                     '<p style="font-size:13px; color:var(--slate-500); margin-top:4px;">Official confirmation has been recorded.</p>' +
                     '<div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:14px; margin:16px 0; text-align:left; font-size:13.5px;">' +
-                      '<div style="margin-bottom:6px;"><span style="color:#475569;">Exam Code:</span> <strong id="confExamCode" style="color:#0f172a;"></strong></div>' +
+                      '<div style="margin-bottom:6px;"><span style="color:#475569;">Enrolled Exam(s):</span> <strong id="confExamCode" style="color:#0f172a;"></strong></div>' +
                       '<div style="margin-bottom:6px;"><span style="color:#475569;">User ID:</span> <strong id="confUserId" style="color:#0f172a;"></strong></div>' +
                       '<div style="margin-bottom:6px;"><span style="color:#475569;">Access PIN:</span> <strong id="confPassword" style="color:#15803d; font-family:monospace; font-size:16px;"></strong></div>' +
                       '<div><span style="color:#475569;">Candidate:</span> <strong id="confName" style="color:#0f172a;"></strong></div>' +
@@ -2557,12 +2560,19 @@
               ) +
             '</div>' +
             '<button type="button" class="sec" style="width:100%;" onclick="App.copyText(\'' + safePass + '\', \'Password copied!\')">Copy Password Only</button>' +
+            '<button type="button" class="sec" style="width:100%; margin-top:8px; color:#b45309; border-color:#f59e0b; font-weight:600;" onclick="App.allowCandidateReattempt(\'' + cand.UserID + '\', \'' + safeName + '\')">&#128260; Reset Submission (Allow Re-attempt)</button>' +
           '</div>' +
           '<div class="modal-foot">' +
             '<button class="sec" onclick="App.closeModal()">Close</button>' +
           '</div>';
 
         openModal(html);
+      };
+
+      App.allowCandidateReattempt = function (userId, name) {
+        if (!confirm('Allow candidate "' + name + '" (' + userId + ') to re-attempt this examination?\n\nThis will clear their previous submission, allowing them to log in and take the exam fresh.')) return;
+        App.candAction(userId, 'reattempt');
+        App.closeModal();
       };
 
       App.openCandShareModal = function (userId) {
@@ -2938,6 +2948,12 @@
           '<div style="margin-bottom:16px;">' +
             '<input type="file" id="uploadCsvFileInput" accept=".csv" onchange="App.handleFilePreview(\'' + type + '\')">' +
           '</div>' +
+          (isCand ?
+            ('<div style="margin-bottom:14px; background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:10px;">' +
+              '<label style="font-weight:700; color:#166534; margin-bottom:4px; display:block;">Target Examination(s)</label>' +
+              '<label class="chk-line" style="font-size:13px; cursor:pointer;"><input type="checkbox" id="uploadAllExams" checked> <strong>Enroll candidates into ALL active examinations</strong></label>' +
+              '<small style="color:#15803d; display:block; margin-top:2px;">Enrolls candidates with the same User ID and Password across both KSR2026 and KFC2026.</small>' +
+            '</div>') : '') +
           '<div style="margin-bottom:16px;">' +
             '<label>Upload Mode</label>' +
             '<label class="chk-line"><input type="radio" name="uploadMode" value="add" checked> Add to existing records</label>' +
@@ -2982,11 +2998,16 @@
         const action = type === 'candidates' ? 'uploadCandidates' : 'uploadQuestions';
         const submitBtn = document.getElementById('btnConfirmUpload');
 
+        const uploadAll = type === 'candidates' && document.getElementById('uploadAllExams') && document.getElementById('uploadAllExams').checked;
+        const examsList = App.adminState.examsList || [];
+        const examIds = uploadAll && examsList.length ? examsList.map(function (x) { return x.ExamID; }) : [App.adminState.selectedExamId];
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'Processing and saving...';
 
         callApi(action, {
           examId: App.adminState.selectedExamId,
+          examIds: examIds,
           rows: window._parsedRows,
           replace: replaceMode
         })
@@ -3908,18 +3929,19 @@
             document.getElementById('regMemberName').textContent = res.member.name;
             document.getElementById('regMemberMeta').textContent = res.member.designation + ' | PEN: ' + res.member.pen;
 
-            const sel = document.getElementById('regExamSelect');
-            sel.innerHTML = '';
+            const boxContainer = document.getElementById('regExamCheckboxes');
+            boxContainer.innerHTML = '';
             if (!res.exams || !res.exams.length) {
-              sel.innerHTML = '<option value="">No examinations open for registration currently</option>';
+              boxContainer.innerHTML = '<div style="color:var(--slate-500); font-size:13px; padding:6px;">No examinations open for registration currently.</div>';
               document.getElementById('btnSubmitReg').disabled = true;
             } else {
               document.getElementById('btnSubmitReg').disabled = false;
               res.exams.forEach(function (x) {
-                const opt = document.createElement('option');
-                opt.value = x.examId;
-                opt.textContent = x.code + ' - ' + x.title + ' (' + x.durationMin + ' Mins)';
-                sel.appendChild(opt);
+                const label = document.createElement('label');
+                label.style.cssText = 'display:flex; align-items:center; gap:10px; font-size:13px; cursor:pointer; padding:8px 10px; border-radius:6px; background:#fff; border:1px solid #e2e8f0; font-weight:600; color:#1e293b;';
+                label.innerHTML = '<input type="checkbox" name="regExamChoice" value="' + escapeHtml(x.examId) + '" checked style="accent-color:#16a34a; width:16px; height:16px;"> ' +
+                  '<div><strong>' + escapeHtml(x.code) + '</strong> &ndash; ' + escapeHtml(x.title) + ' <span style="color:#64748b; font-size:11.5px; font-weight:normal;">(' + x.durationMin + ' Mins)</span></div>';
+                boxContainer.appendChild(label);
               });
             }
           })
@@ -3930,16 +3952,22 @@
           });
       };
 
+      App.toggleSelectAllExams = function (master) {
+        const boxes = document.querySelectorAll('input[name="regExamChoice"]');
+        boxes.forEach(function (b) { b.checked = master.checked; });
+      };
+
       App.submitCandidateRegistration = function () {
         const emailInput = document.getElementById('regEmail');
-        const examSel = document.getElementById('regExamSelect');
         const passInput = document.getElementById('regCustomPass');
         const errEl = document.getElementById('regStep2Error');
         const btn = document.getElementById('btnSubmitReg');
 
         const email = (emailInput.value || '').trim().toLowerCase();
-        const examId = examSel.value;
         const customPass = (passInput.value || '').trim();
+
+        const checkedBoxes = Array.from(document.querySelectorAll('input[name="regExamChoice"]:checked'));
+        const examIds = checkedBoxes.map(function (b) { return b.value; });
 
         errEl.style.display = 'none';
 
@@ -3948,8 +3976,8 @@
           errEl.style.display = 'block';
           return;
         }
-        if (!examId) {
-          errEl.textContent = 'Please select an examination.';
+        if (!examIds.length) {
+          errEl.textContent = 'Please select at least one examination to register.';
           errEl.style.display = 'block';
           return;
         }
@@ -3960,7 +3988,7 @@
         callApi('registerCandidate', {
           pen: App._regMember.pen,
           email: email,
-          examId: examId,
+          examIds: examIds,
           customPassword: customPass
         })
           .then(function (res) {
@@ -3977,7 +4005,7 @@
             document.getElementById('regStep2').style.display = 'none';
             document.getElementById('regStep3').style.display = 'block';
 
-            document.getElementById('confExamCode').textContent = res.candidate.examCode;
+            document.getElementById('confExamCode').textContent = res.candidate.examCode || 'Registered';
             document.getElementById('confUserId').textContent = res.candidate.userId;
             document.getElementById('confPassword').textContent = res.candidate.plainPass || '(Configured Password)';
             document.getElementById('confName').textContent = res.candidate.name;
