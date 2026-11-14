@@ -2461,6 +2461,7 @@
               '<div class="toolbar">' +
                 '<div class="toolbar-left" style="display:flex; align-items:center; gap:8px;">' + buildExamSelectorHtml() + '<span style="font-size:11.5px; font-family:monospace; background:#f1f5f9; padding:4px 8px; border-radius:4px; color:#475569; border:1px solid #cbd5e1;">Exam ID: ' + App.adminState.selectedExamId + '</span></div>' +
                 '<div class="toolbar-right" style="flex-wrap:wrap; gap:6px;">' +
+                  '<button class="sec sm" style="background:#dc2626; color:#fff; border-color:#b91c1c; font-weight:700;" onclick="App.resetAllSubmissionsPrompt()">&#128260; Reset All (Allow Resubmission)</button>' +
                   '<button class="sec sm" style="background:#0f766e; color:#fff; border-color:#0f766e; font-weight:700;" onclick="App.generateExamAttendanceSheet()">Attendance Sheet</button>' +
                   '<button class="sec sm" style="background:#15803d; color:#fff; border-color:#15803d; font-weight:700;" onclick="App.exportRegistrantsExcel()">Export Excel</button>' +
                   '<button class="sec sm" style="background:#4338ca; color:#fff; border-color:#4338ca; font-weight:700;" onclick="App.openAllCredentialsModal()">Credentials Register (All)</button>' +
@@ -2573,6 +2574,45 @@
         if (!confirm('Allow candidate "' + name + '" (' + userId + ') to re-attempt this examination?\n\nThis will clear their previous submission, allowing them to log in and take the exam fresh.')) return;
         App.candAction(userId, 'reattempt');
         App.closeModal();
+      };
+
+      App.resetAllSubmissionsPrompt = function () {
+        const examId = App.adminState.selectedExamId;
+        if (!examId) {
+          alert('Please select an examination first.');
+          return;
+        }
+        const exam = (App.adminState.examsList || []).find(function (e) { return e.ExamID === examId; });
+        const examName = exam ? (exam.Code + ' - ' + exam.Title) : ('Exam ' + examId);
+
+        const msg1 = 'ΓÜá∩╕Å RESET ALL CANDIDATE SUBMISSIONS ΓÜá∩╕Å\n\n' +
+          'Selected Exam: ' + examName + '\n\n' +
+          'This action will:\n' +
+          '1. Clear all completed test submissions for ALL candidates enrolled in ' + (exam ? exam.Code : examId) + '.\n' +
+          '2. Unlock all sessions and clear tab switches to 0.\n' +
+          '3. Clear recorded question responses so every candidate can log in fresh and resubmit.\n\n' +
+          'NOTE: Candidate User IDs, Passwords, and Question Papers will NOT be deleted.\n\n' +
+          'Are you sure you want to allow resubmission for all candidates?';
+
+        if (!confirm(msg1)) return;
+
+        const msg2 = 'FINAL CONFIRMATION:\n\n' +
+          'Do you really want to allow RESUBMISSION for ALL candidates in ' + (exam ? exam.Code : examId) + '?\n\n' +
+          'Click OK to reset now.';
+
+        if (!confirm(msg2)) return;
+
+        showNotice('Resetting all candidate submissions... please wait.', 'info');
+        callApi('resetAllSubmissions', { examId: examId })
+          .then(function (res) {
+            showNotice('', '');
+            alert('Γ£à Successfully reset all submissions!\n\nAll candidate attempts for this exam have been cleared.\nEvery candidate can now log back in fresh and resubmit their examination.');
+            loadAdminTabContent();
+          })
+          .catch(function (err) {
+            showNotice('', '');
+            alert('Error resetting submissions: ' + (err.message || err));
+          });
       };
 
       App.openCandShareModal = function (userId) {
@@ -3084,6 +3124,7 @@
               buildExamSelectorHtml() +
               '<button class="gold sm" style="margin-left:8px;" onclick="App.startExamForAll(App.adminState.selectedExamId)">Open Exam Now</button>' +
                   '<button class="sm sec" onclick="App.openDelayModal(App.adminState.selectedExamId)">Delay</button> ' +
+                  '<button class="sec sm" style="background:#dc2626; color:#fff; border-color:#b91c1c; font-weight:700;" onclick="App.resetAllSubmissionsPrompt()">&#128260; Reset All (Allow Resubmission)</button> ' +
                   '<button class="sec sm" style="background:#0f766e; color:#fff; border-color:#0f766e; font-weight:700;" onclick="App.generateExamAttendanceSheet()">Attendance Sheet</button>' +
               '<button class="sec sm" style="background:#004d7a; color:#fff; border-color:#004d7a; font-weight:700;" onclick="App.generateAllCandidateSheets()">Response Sheets (All PDF)</button>' +
             '</div>' +
@@ -3250,6 +3291,7 @@
                   ) +
                 '</div>' +
                 '<div class="toolbar-right">' +
+                  '<button class="sec sm" style="background:#dc2626; color:#fff; border-color:#b91c1c; font-weight:700;" onclick="App.resetAllSubmissionsPrompt()">&#128260; Reset All (Allow Resubmission)</button>' +
                   '<button class="sec sm" style="background:#1e40af; color:#fff; border-color:#1e40af; font-weight:700;" onclick="App.printResultsList()">Merit Rank List</button>' +
                   '<button class="sec sm" style="background:#0f766e; color:#fff; border-color:#0f766e; font-weight:700;" onclick="App.generateExamAttendanceSheet()">Attendance Sheet</button>' +
               '<button class="sec sm" style="background:#004d7a; color:#fff; border-color:#004d7a; font-weight:700;" onclick="App.generateAllCandidateSheets()">Response Sheets (All PDF)</button>' +
